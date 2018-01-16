@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -17,15 +19,15 @@ func Main() int {
 	source := os.Args[1]
 	destination := os.Args[2]
 
-	log.Println(source, destination)
-	ini := Ini{}
-	src, dst, err := ini.Read(source, destination)
+	ovr := getOverider(source, destination)
+
+	src, dst, err := ovr.Read(source, destination)
 	if err != nil {
 		log.Println(err)
 		return 1
 	}
 
-	dst, err = ini.Override(src, dst)
+	dst, err = ovr.Override(src, dst)
 	if err != nil {
 		log.Println(err)
 		return 1
@@ -35,10 +37,28 @@ func Main() int {
 		destination = os.Args[4]
 	}
 
-	err = ini.Write(dst, destination)
+	err = ovr.Write(dst, destination)
 	if err != nil {
 		log.Println(err)
 		return 1
 	}
 	return 0
+}
+
+func getOverider(source, destination string) Overider {
+	srcSplit := strings.Split(source, ".")
+	dstSplit := strings.Split(destination, ".")
+
+	ext1 := srcSplit[len(srcSplit)-1]
+	ext2 := dstSplit[len(dstSplit)-1]
+	if ext1 != ext2 {
+		log.Fatal("Source file and Destination file is different type")
+	}
+
+	if ext1 == "ini" {
+		return Ini{}
+	}
+
+	log.Fatal(fmt.Sprintf("%s file is not supported", ext1))
+	return nil
 }
