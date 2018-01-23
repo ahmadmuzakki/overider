@@ -43,92 +43,54 @@ func (i Ini) Read(srcPath, dstPath string) (Source, Destination, error) {
 		return src, dst, err
 	}
 
-	lines, attr := cleanIniLines(lines)
-
-	dst.Attribute = attr
-
-	digest := make(map[string]interface{})
-	readline(lines, &digest)
-	dst.Digest = digest
+	dst = lines
 	return src, dst, nil
 }
 
-// this function will return clean lines and mapped components
-func cleanIniLines(lines []string) ([]string, map[int]string) {
-	newLines := make([]string, 0, len(lines))
-	attr := make(map[int]string)
-	for i, l := range lines {
-		if l == "" || l[0] == '#' {
-			attr[i] = l
+func (i Ini) Override(src Source, dst Destination) (Destination, error) {
+	curKey := ""
+	for i, dstLine := range dst {
+		if strings.TrimSpace(dstLine) == "" || dstLine[0] == '#' {
 			continue
 		}
-		newLines = append(newLines, l)
-	}
-	return newLines, attr
-}
-
-func (i Ini) Override(src Source, dst Destination) (Destination, error) {
-	splitValue := func(line string) (string, string) {
-		lines := strings.Split(line, "=")
-		if len(lines) < 2 {
-			return "", ""
+		if iniKeyIdentifier.MatchString(dstLine) {
+			curKey = dstLine
+			continue
 		}
-		key := lines[0]
-		value := strings.Join(lines[1:], "=")
-		key = strings.TrimSpace(key)
-		value = strings.TrimSpace(value)
-		return key, value
-	}
+		if curKey == "" {
+			continue
+		}
 
-	for dstKey, dstVal := range dst.Digest {
-		for srcKey, srcVal := range src {
-			if srcKey == dstKey {
-				dstLines := dstVal.([]string)
-				srcLines := srcVal.([]string)
-
-				for i, dstLine := range dstLines {
-					for _, srcLine := range srcLines {
-
-						dstLineKey, _ := splitValue(dstLine)
-						srcLineKey, srcLineVal := splitValue(srcLine)
-						if dstLineKey == srcLineKey {
-							dstLines[i] = fmt.Sprintf("%s = %s", srcLineKey, srcLineVal)
-						}
-					}
-				}
-
-				dst.Digest[dstKey] = dstLines
-				delete(src, dstKey)
+		parsekv := func(str string) (key, val string) {
+			kv := strings.Split(str, "=")
+			if len(kv) < 2 {
+				return
 			}
+
+			val = strings.Join(kv[1:], "=")
+			return strings.TrimSpace(kv[0]), strings.TrimSpace(val)
+		}
+
+		if srcLine, ok := src[curKey]; ok {
+			dstKey, _ := parsekv(dstLine)
+			for _, line := range srcLine.([]string) {
+				srcKey, srcVal := parsekv(line)
+				if srcKey == dstKey {
+					dst[i] = fmt.Sprintf("%s = %s", dstKey, srcVal)
+				}
+			}
+		} else {
+			curKey = ""
 		}
 	}
+
 	return dst, nil
 }
 
 func (ini Ini) Write(dst Destination, dstURL string) error {
-	raw := []string{}
-	for key, val := range dst.Digest {
-		raw = append(raw, key)
-		raw = append(raw, val.([]string)...)
-	}
-
 	fullFile := []byte{}
-	var j, i int
-	attr := dst.Attribute
-	for {
-		data := ""
-		if a, ok := attr[i]; ok {
-			data = a
-			delete(attr, i)
-		} else if j < len(raw) {
-			data = raw[j]
-			j++
-		}
-		fullFile = append(fullFile, []byte(data+"\n")...)
-		i++
-		if len(attr) == 0 && len(raw) <= j {
-			break
-		}
+	for _, line := range dst {
+		fullFile = append(fullFile, []byte(line+"\n")...)
 	}
 	fullFile = fullFile[:len(fullFile)-1] // remove the last \n
 

@@ -12,7 +12,9 @@ func main() {
 }
 
 func Main() int {
-	if len(os.Args) < 2 {
+
+	lenargs := len(os.Args)
+	if lenargs < 2 {
 		return 1
 	}
 
@@ -33,7 +35,7 @@ func Main() int {
 		return 1
 	}
 
-	if os.Args[3] == "-o" && os.Args[4] != "" {
+	if lenargs == 5 && os.Args[3] == "-o" && os.Args[4] != "" {
 		destination = os.Args[4]
 	}
 

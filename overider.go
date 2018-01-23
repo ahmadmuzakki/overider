@@ -8,7 +8,4 @@ type Overider interface {
 
 type Source map[string]interface{}
 
-type Destination struct {
-	Attribute map[int]string // attribute is a newline, or comments
-	Digest    map[string]interface{}
-}
+type Destination []string
