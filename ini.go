@@ -9,7 +9,7 @@ import (
 
 type Ini struct{}
 
-var iniKeyIdentifier = regexp.MustCompile(`^\[.*\]$`)
+var iniKeyIdentifier = regexp.MustCompile(`^\[.*\]`)
 
 func (i Ini) Read(srcPath, dstPath string) (Source, Destination, error) {
 	src := make(map[string]interface{})
@@ -54,7 +54,7 @@ func (i Ini) Override(src Source, dst Destination) (Destination, error) {
 			continue
 		}
 		if iniKeyIdentifier.MatchString(dstLine) {
-			curKey = dstLine
+			curKey = strings.TrimSpace(dstLine)
 			continue
 		}
 		if curKey == "" {

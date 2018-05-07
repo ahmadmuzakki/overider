@@ -11,14 +11,26 @@ func main() {
 	os.Exit(Main())
 }
 
+var usage = `Usage:
+	overider <source> <destination> [-o <output>]
+
+	source : file containing variable that gonna replaced into destination
+	destination : file containing original content that will replaced by variable in source
+`
+
 func Main() int {
 
 	lenargs := len(os.Args)
 	if lenargs < 2 {
+		fmt.Println(usage)
 		return 1
 	}
 
 	source := os.Args[1]
+	if source == "-help" {
+		fmt.Println(usage)
+		return 1
+	}
 	destination := os.Args[2]
 
 	ovr := getOverider(source, destination)
